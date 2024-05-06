@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation Project</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Add some basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .radar-chart, .bubble-chart {
+            width: 500px;
+            height: 500px;
+        }
+        .bubble {
+            fill: steelblue;
+        }
+    </style>
+</head>
+<body>
+    <h1>Data Visualisation Project Website</h1>
+    <div id="radarChart" class="radar-chart"></div>
+
+    <script>
+        // Sample data for the radar chart
+        var radarData = [
+            { label: 'Label 1', value: 30 },
+            { label: 'Label 2', value: 40 },
+            { label: 'Label 3', value: 50 },
+            { label: 'Label 4', value: 60 },
+            { label: 'Label 5', value: 70 }
+        ];
+
+        // Set up the radar chart
+        var width = 500;
+        var height = 500;
+        var radius = Math.min(width, height) / 2;
+
+        // Append SVG for radar chart
+        var radarSvg = d3.select("#radarChart")
+            .append("svg")
+            .attr("class", "radar-chart")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Define radar line function
+        var radarLine = d3.lineRadial()
+            .radius(function(d) { return d.value * radius / 100; })
+            .angle(function(d, i) { return (i / radarData.length) * (2 * Math.PI) - Math.PI / 2; });
+
+        // Function to draw radar chart
+        var radarChart = function(data) {
+            radarSvg.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "steelblue")
+                .attr("stroke-width", 3)
+                .attr("d", function(d) {
+                    return radarLine(d) + "Z"; // Close the path
+                })
+                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+        };
+
+        // Call the radarChart function with the sample data
+        radarChart(radarData);
+
+        // Sample data for the bubble chart
+        var bubbleData = [
+            { x: 50, y: 50, r: 20 },
+            { x: 100, y: 100, r: 30 },
+            { x: 150, y: 150, r: 40 },
+            { x: 200, y: 200, r: 50 },
+            { x: 350, y: 250, r: 60 }
+        ];
+
+        // Set up the bubble chart
+        var bubbleSvg = d3.select("#radarChart")
+            .append("svg")
+            .attr("class", "bubble-chart")
+            .attr("width", width)
+            .attr("height", height);
+
+        var bubbles = bubbleSvg.selectAll("circle")
+            .data(bubbleData)
+            .enter()
+            .append("circle")
+            .attr("class", "bubble")
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; })
+            .attr("r", function(d) { return d.r; });
+
+    </script>
+</body>
+</html>
