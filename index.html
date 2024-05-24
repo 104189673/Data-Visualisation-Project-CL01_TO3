@@ -1,98 +1,238 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Visualisation Project</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        /* Add some basic styling */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        .radar-chart, .bubble-chart {
-            width: 500px;
-            height: 500px;
-        }
-        .bubble {
-            fill: steelblue;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar Chart with Bubble Chart</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; }
+  #controls { margin-bottom: 20px; }
+  #radarChart { margin: 0 auto; }
+  .tooltip {
+    position: absolute;
+    text-align: center;
+    width: 60px;
+    height: 28px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .legend {
+    font-size: 12px;
+  }
+</style>
 </head>
 <body>
-    <h1>Data Visualisation Project Website</h1>
-    <div id="radarChart" class="radar-chart"></div>
+<h1>Data Visualization Project Website</h1>
+<div id="controls">
+  <label for="countrySelect">Country:</label>
+  <select id="countrySelect"></select>
+  <label for="yearSelect">Year:</label>
+  <select id="yearSelect"></select>
+  <label for="measureSelect">Type of Measure:</label>
+  <select id="measureSelect">
+    <option value="Number">Number</option>
+    <option value="Per 100,000 population">Per 100,000 population</option>
+  </select>
+  <button id="addButton">ADD</button>
+</div>
+<!-- Radar Chart -->
+<div id="radarChart"></div>
+<div class="tooltip" id="tooltip" style="opacity: 0;"></div>
 
-    <script>
-        // Sample data for the radar chart
-        var radarData = [
-            { label: 'Label 1', value: 30 },
-            { label: 'Label 2', value: 40 },
-            { label: 'Label 3', value: 50 },
-            { label: 'Label 4', value: 60 },
-            { label: 'Label 5', value: 70 }
-        ];
+<script>
+const categories = [
+  'Medical graduates',
+  'Dentists graduates',
+  'Pharmacists graduates',
+  'Midwives graduates',
+  'Nursing graduates',
+  'Professional nursing graduates',
+  'Associate Professional nursing graduates'
+];
+const angleSlice = Math.PI * 2 / categories.length; // Calculates the angle to divide a circle into seven parts
 
-        // Set up the radar chart
-        var width = 500;
-        var height = 500;
-        var radius = Math.min(width, height) / 2;
+const radarScale = d3.scaleLinear().domain([0, 10]).range([0, 300]);
 
-        // Append SVG for radar chart
-        var radarSvg = d3.select("#radarChart")
-            .append("svg")
-            .attr("class", "radar-chart")
-            .attr("width", width)
-            .attr("height", height);
+const colorScale = d3.scaleOrdinal().range(['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7']);
 
-        // Define radar line function
-        var radarLine = d3.lineRadial()
-            .radius(function(d) { return d.value * radius / 100; })
-            .angle(function(d, i) { return (i / radarData.length) * (2 * Math.PI) - Math.PI / 2; });
+const svg = d3.select("#radarChart")
+  .append("svg")
+  .attr("width", 1200)
+  .attr("height", 900)
+  .append("g")
+  .attr("transform", "translate(600, 350)");
 
-        // Function to draw radar chart
-        var radarChart = function(data) {
-            radarSvg.append("path")
-                .datum(data)
-                .attr("fill", "none")
-                .attr("stroke", "steelblue")
-                .attr("stroke-width", 3)
-                .attr("d", function(d) {
-                    return radarLine(d) + "Z"; // Close the path
-                })
-                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-        };
+const tooltip = d3.select("#tooltip");
 
-        // Call the radarChart function with the sample data
-        radarChart(radarData);
+// Draw polygons for levels
+for (let i = 1; i <= 5; i++) {
+  const levelFactor = radarScale(i * 2);
+  const levelData = categories.map((d, j) => ({
+    x: levelFactor * Math.cos(angleSlice * j - Math.PI / 2),
+    y: levelFactor * Math.sin(angleSlice * j - Math.PI / 2)
+  }));
 
-        // Sample data for the bubble chart
-        var bubbleData = [
-            { x: 50, y: 50, r: 20 },
-            { x: 100, y: 100, r: 30 },
-            { x: 150, y: 150, r: 40 },
-            { x: 200, y: 200, r: 50 },
-            { x: 350, y: 250, r: 60 }
-        ];
+  svg.append("polygon")
+    .attr("points", levelData.map(d => [d.x, d.y].join(",")).join(" "))
+    .attr("stroke", "gray")
+    .attr("stroke-width", 1)
+    .attr("fill", "none")
+    .attr("opacity", 0.3);
+}
 
-        // Set up the bubble chart
-        var bubbleSvg = d3.select("#radarChart")
-            .append("svg")
-            .attr("class", "bubble-chart")
-            .attr("width", width)
-            .attr("height", height);
+// Draw category labels
+svg.selectAll(".category-label")
+  .data(categories)
+  .enter().append("text")
+  .attr("class", "category-label")
+  .attr("x", (d, i) => Math.cos(angleSlice * i - Math.PI / 2) * (radarScale(10) + 10))
+  .attr("y", (d, i) => Math.sin(angleSlice * i - Math.PI / 2) * (radarScale(10) + 10))
+  .text(d => d)
+  .attr("text-anchor", (d, i) => (Math.cos(angleSlice * i - Math.PI / 2) < 0) ? "end" : "start")
+  .attr("alignment-baseline", "middle");
 
-        var bubbles = bubbleSvg.selectAll("circle")
-            .data(bubbleData)
-            .enter()
-            .append("circle")
-            .attr("class", "bubble")
-            .attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; })
-            .attr("r", function(d) { return d.r; });
+// Function to update the radar chart
+function updateRadarChart(data, countries) {
+  // Clear previous radar lines and circles
+  svg.selectAll(".radar-line").remove();
+  svg.selectAll(".radar-circle").remove();
 
-    </script>
+  // Find the maximum value for radar scale domain calculation
+  let maxDataValue = 0;
+  countries.forEach(country => {
+    const values = data[country].map(d => parseFloat(d['Percentage of graduates contributed by country']));
+    const maxValueInCountry = d3.max(values);
+    if (maxValueInCountry > maxDataValue) {
+      maxDataValue = maxValueInCountry;
+    }
+  });
+
+  // Recalculate radar scale domain based on the maximum value
+  radarScale.domain([0, maxDataValue]);
+
+  // Draw radar lines (polygons) for all countries first
+  countries.forEach((country, index) => {
+    const values = data[country].map(d => parseFloat(d['Percentage of graduates contributed by country']));
+
+    svg.append("polygon")
+      .datum(values)
+      .attr("class", "radar-line")
+      .attr("points", values.map((d, i) => [
+        radarScale(d) * Math.cos(angleSlice * i - Math.PI / 2),
+        radarScale(d) * Math.sin(angleSlice * i - Math.PI / 2)
+      ].join(",")).join(" "))
+      .attr("stroke", colorScale(index))
+      .attr("stroke-width", 2)
+      .attr("fill", colorScale(index))
+      .attr("fill-opacity", 0.1);
+  });
+
+  // Draw circles for data points on top of radar lines for all countries
+  countries.forEach((country, index) => {
+    const values = data[country].map(d => parseFloat(d['Percentage of graduates contributed by country']));
+
+    values.forEach((d, i) => {
+      if (d !== 0) { // Skip adding point at the center
+        svg.append("circle")
+          .attr("class", "radar-circle")
+          .attr("cx", radarScale(d) * Math.cos(angleSlice * i - Math.PI / 2))
+          .attr("cy", radarScale(d) * Math.sin(angleSlice * i - Math.PI / 2))
+          .attr("r", 4)
+          .attr("fill", colorScale(index))
+          .on("mouseover", function(event) {
+            tooltip.transition().duration(200).style("opacity", .9);
+            tooltip.html(d)
+              .style("left", (event.pageX + 5) + "px")
+              .style("top", (event.pageY - 28) + "px");
+          })
+          .on("mouseout", function() {
+            tooltip.transition().duration(500).style("opacity", 0);
+          });
+      }
+    });
+  });
+
+  // Add legend
+  svg.selectAll(".legend").remove();
+  const legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", "translate(-350, -300)");
+
+  legend.selectAll("rect")
+    .data(countries)
+    .enter().append("rect")
+    .attr("x", 0)
+    .attr("y", (d, i) => i * 20)
+    .attr("width", 18)
+    .attr("height", 18)
+    .style("fill", (d, i) => colorScale(i));
+
+  legend.selectAll("text")
+    .data(countries)
+    .enter().append("text")
+    .attr("x", 24)
+    .attr("y", (d, i) => i * 20 + 9)
+    .attr("dy", ".35em")
+    .text(d => d);
+}
+
+// Load the data and initialize the dropdowns
+d3.csv("Secondary Filtered Dataset.csv").then(data => {
+  const filteredData = data.filter(d => categories.includes(d.Variable));
+  const countries = Array.from(new Set(filteredData.map(d => d.Country)));
+  const years = Array.from(new Set(filteredData.map(d => d.Year)));
+  const measures = Array.from(new Set(filteredData.map(d => d.Measure)));
+
+  // Populate the country dropdown
+  const countrySelect = d3.select("#countrySelect");
+  countrySelect.selectAll("option")
+    .data(countries)
+    .enter().append("option")
+    .text(d => d);
+
+  // Populate the year dropdown
+  const yearSelect = d3.select("#yearSelect");
+  yearSelect.selectAll("option")
+    .data(years)
+    .enter().append("option")
+    .text(d => d);
+
+  // Populate the measure dropdown
+  const measureSelect = d3.select("#measureSelect");
+  measureSelect.selectAll("option")
+    .data(measures)
+    .enter().append("option")
+    .text(d => d);
+
+  // Initialize selected data
+  let selectedData = {};
+  let selectedCountries = [];
+
+  // Function to add data for the selected country and year
+  function addCountryData() {
+    const selectedCountry = countrySelect.node().value;
+    const selectedYear = yearSelect.node().value;
+    const selectedMeasure = measureSelect.node().value;
+    if (!selectedCountries.includes(selectedCountry)) {
+      selectedCountries.push(selectedCountry);
+      selectedData[selectedCountry] = filteredData.filter(d => 
+        d.Country === selectedCountry && 
+        d.Year === selectedYear && 
+        d.Measure === selectedMeasure
+      );
+      updateRadarChart(selectedData, selectedCountries);
+    }
+  }
+
+  // Add button event listener
+  d3.select("#addButton").on("click", addCountryData);
+});
+</script>
+
 </body>
 </html>
