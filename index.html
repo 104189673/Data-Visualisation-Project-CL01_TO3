@@ -1,238 +1,989 @@
+<!--images taken from this website: https://wallpapers.com/healthcare#google_vignette-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar Chart with Bubble Chart</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<style>
-  body { font-family: Arial, sans-serif; }
-  #controls { margin-bottom: 20px; }
-  #radarChart { margin: 0 auto; }
-  .tooltip {
-    position: absolute;
-    text-align: center;
-    width: 60px;
-    height: 28px;
-    padding: 2px;
-    font: 12px sans-serif;
-    background: lightsteelblue;
-    border: 0px;
-    border-radius: 8px;
-    pointer-events: none;
-  }
-  .legend {
-    font-size: 12px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CL01_T03 Data Visualization Project Website</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-<h1>Data Visualization Project Website</h1>
-<div id="controls">
-  <label for="countrySelect">Country:</label>
-  <select id="countrySelect"></select>
-  <label for="yearSelect">Year:</label>
-  <select id="yearSelect"></select>
-  <label for="measureSelect">Type of Measure:</label>
-  <select id="measureSelect">
-    <option value="Number">Number</option>
-    <option value="Per 100,000 population">Per 100,000 population</option>
-  </select>
-  <button id="addButton">ADD</button>
-</div>
-<!-- Radar Chart -->
-<div id="radarChart"></div>
-<div class="tooltip" id="tooltip" style="opacity: 0;"></div>
+  <section id="header">
+    <div class="overlay"></div>
+      <div id="header-div">
+        <h1>Global HealthCare Resources</h1>
+        <h2>A Comparative Analysis (2019 - 2022)</h2>
+        <a href="#radar">Explore the Global Contribution of Graduates by Country</a>
+        <br>
+        <a href="#bubble">Uncover the Global Distribution of Medical Equipment</a>
+    </div>
+  </section>
+  <section id="radar-info">
+    <div>
+      <h2>How to Use Our Radar Chart</h2>
+      <p>Our radar chart is a powerful tool for visualizing multidimensional data. Whether you're exploring trends over time, comparing countries, or analyzing different variables, our radar chart provides an intuitive and interactive way to gain insights. Below, we outline how to effectively utilize our radar chart</p>
+        <h3>Understanding the Axes</h3>
+          <p>Each axis on the radar chart acts as your personal compass, pointing you towards a specific data point (type of graduate)</p>
+          <p>The farther you venture outwards on an axis, the higher the value for that variable. Conversely, data points closer to the center represent lower values</p>
+        <h3>Interactivity</h3>
+          <p>You can select the measure type ("Per 100,000 population" or "Percentage of graduates contributed by country") to explore different perspectives of the data</p>
+          <p>You can also select up to five countries for any year</p>
+          <p>You can hover over data points which will enable a detailed tooltip</p>
+    </div>
+  </section>
+  <div class="tooltip" id="tooltip"></div>
+  <section id="radar">
+    <div id="controls">
+      <select id="countrySelect"></select>
+      <select id="yearSelect"></select>
+      <select id="measureSelect">
+        <option value="" disabled selected>Select Measure</option>
+        <option value="Number">Percentage</option>
+        <option value="Per 100 000 population">Per 100,000 population</option>       
+      </select>
+      <button id="addButton">ADD</button>
+      <button id="removeButton">REMOVE</button>
+      <br>
+      <hr>
+      <br>
+      <div id="selectedDataContainer"></div>
+    </div>
+    <div id="radarChart"></div>
+  </section>
+
+  <section id="bubble">
+      <div></div>
+  </section>
+  <footer>
+    <p>CL01_T03 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mirza Wilayat Ali - 104189673 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Asini Imaya Handugoda - 103816077</p>
+  </footer>
+</body>
 
 <script>
-const categories = [
-  'Medical graduates',
-  'Dentists graduates',
-  'Pharmacists graduates',
-  'Midwives graduates',
-  'Nursing graduates',
-  'Professional nursing graduates',
-  'Associate Professional nursing graduates'
-];
-const angleSlice = Math.PI * 2 / categories.length; // Calculates the angle to divide a circle into seven parts
+  const categories = ['Medical','Dentists','Pharmacists','Midwives','Nursing','Professional nursing','Associate Professional nursing'];
+  const angleSlice = Math.PI * 2 / categories.length; // Calculates the angle to divide a circle into seven parts
+  
+  const radarScale = d3.scaleLinear().domain([0, 10]).range([0, 300]);
 
-const radarScale = d3.scaleLinear().domain([0, 10]).range([0, 300]);
+  // Initialize color scale
+  const colorScale = d3.scaleOrdinal().range(['#E6194B', '#3CB44B', '#FFE119', '#4363D8', '#F58231']);
 
-const colorScale = d3.scaleOrdinal().range(['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7']);
-
-const svg = d3.select("#radarChart")
-  .append("svg")
-  .attr("width", 1200)
-  .attr("height", 900)
-  .append("g")
-  .attr("transform", "translate(600, 350)");
-
-const tooltip = d3.select("#tooltip");
-
-// Draw polygons for levels
-for (let i = 1; i <= 5; i++) {
-  const levelFactor = radarScale(i * 2);
-  const levelData = categories.map((d, j) => ({
-    x: levelFactor * Math.cos(angleSlice * j - Math.PI / 2),
-    y: levelFactor * Math.sin(angleSlice * j - Math.PI / 2)
-  }));
-
-  svg.append("polygon")
-    .attr("points", levelData.map(d => [d.x, d.y].join(",")).join(" "))
-    .attr("stroke", "gray")
-    .attr("stroke-width", 1)
-    .attr("fill", "none")
-    .attr("opacity", 0.3);
-}
-
-// Draw category labels
-svg.selectAll(".category-label")
-  .data(categories)
-  .enter().append("text")
-  .attr("class", "category-label")
-  .attr("x", (d, i) => Math.cos(angleSlice * i - Math.PI / 2) * (radarScale(10) + 10))
-  .attr("y", (d, i) => Math.sin(angleSlice * i - Math.PI / 2) * (radarScale(10) + 10))
-  .text(d => d)
-  .attr("text-anchor", (d, i) => (Math.cos(angleSlice * i - Math.PI / 2) < 0) ? "end" : "start")
-  .attr("alignment-baseline", "middle");
-
-// Function to update the radar chart
-function updateRadarChart(data, countries) {
-  // Clear previous radar lines and circles
-  svg.selectAll(".radar-line").remove();
-  svg.selectAll(".radar-circle").remove();
-
-  // Find the maximum value for radar scale domain calculation
-  let maxDataValue = 0;
-  countries.forEach(country => {
-    const values = data[country].map(d => parseFloat(d['Percentage of graduates contributed by country']));
-    const maxValueInCountry = d3.max(values);
-    if (maxValueInCountry > maxDataValue) {
-      maxDataValue = maxValueInCountry;
-    }
-  });
-
-  // Recalculate radar scale domain based on the maximum value
-  radarScale.domain([0, maxDataValue]);
-
-  // Draw radar lines (polygons) for all countries first
-  countries.forEach((country, index) => {
-    const values = data[country].map(d => parseFloat(d['Percentage of graduates contributed by country']));
-
+  // Select the radarChart container and append an SVG element
+  const svg = d3.select("#radarChart")
+    .append("svg")
+    .style("width", "100%") // Set width to 100% of container
+    .style("height", "100%") // Set height to 100% of container
+    .append("g")
+    .style("transform", `translate(50%, 50%)`);// Translates the g element to center vertically and horizontally
+  
+  const tooltip = d3.select("#tooltip");
+  
+  // Draw polygons for levels
+  for (let i = 1; i <= 5; i++) {
+    const levelFactor = radarScale(i * 2);
+    const levelData = categories.map((d, j) => ({
+      x: levelFactor * Math.cos(angleSlice * j - Math.PI / 2),
+      y: levelFactor * Math.sin(angleSlice * j - Math.PI / 2)
+    }));
+  
     svg.append("polygon")
-      .datum(values)
-      .attr("class", "radar-line")
-      .attr("points", values.map((d, i) => [
-        radarScale(d) * Math.cos(angleSlice * i - Math.PI / 2),
-        radarScale(d) * Math.sin(angleSlice * i - Math.PI / 2)
-      ].join(",")).join(" "))
-      .attr("stroke", colorScale(index))
-      .attr("stroke-width", 2)
-      .attr("fill", colorScale(index))
-      .attr("fill-opacity", 0.1);
-  });
+      .attr("points", levelData.map(d => [d.x, d.y].join(",")).join(" "))
+      .attr("stroke", "gray")
+      .attr("stroke-width", 1)
+      .attr("fill", "none")
+      .attr("opacity", 0.3);
+  }
+  
+  // Draw category labels
+  svg.selectAll(".category-label")
+    .data(categories)
+    .enter().append("text")
+    .attr("class", "category-label")
+    .attr("x", (d, i) => Math.cos(angleSlice * i - Math.PI / 2) * (radarScale(10) + 10))
+    .attr("y", (d, i) => Math.sin(angleSlice * i - Math.PI / 2) * (radarScale(10) + 10))
+    .text(d => d)
+    .attr("text-anchor", (d, i) => (Math.cos(angleSlice * i - Math.PI / 2) < 0) ? "end" : "start")
+    .attr("alignment-baseline", "middle");
+  
+  // Define measureSelect outside of data loading block
+  const measureSelect = d3.select("#measureSelect");
+  
+  // Initialize selected data and country colors outside the d3.csv block
+  let selectedData = {};
+  let selectedCountryYears = [];
+  let countryColors = {};
+  
+  const selectedDataContainer = d3.select("#selectedDataContainer");
+  
+  // Function to update the display of selected data
+  function updateSelectedDataDisplay() {
+    selectedDataContainer.html(""); // Clear the container
 
-  // Draw circles for data points on top of radar lines for all countries
-  countries.forEach((country, index) => {
-    const values = data[country].map(d => parseFloat(d['Percentage of graduates contributed by country']));
+    selectedCountryYears.forEach(countryYear => {
+      const [country, year] = countryYear.split('-');
+      const entryDiv = selectedDataContainer.append("div")
+        .attr("class", "selected-data-entry")
+        .style("background-color", countryColors[countryYear]); // Set background color here
 
-    values.forEach((d, i) => {
-      if (d !== 0) { // Skip adding point at the center
-        svg.append("circle")
-          .attr("class", "radar-circle")
-          .attr("cx", radarScale(d) * Math.cos(angleSlice * i - Math.PI / 2))
-          .attr("cy", radarScale(d) * Math.sin(angleSlice * i - Math.PI / 2))
-          .attr("r", 4)
-          .attr("fill", colorScale(index))
-          .on("mouseover", function(event) {
-            tooltip.transition().duration(200).style("opacity", .9);
-            tooltip.html(d)
-              .style("left", (event.pageX + 5) + "px")
-              .style("top", (event.pageY - 28) + "px");
-          })
-          .on("mouseout", function() {
-            tooltip.transition().duration(500).style("opacity", 0);
-          });
+      entryDiv.append("span")
+        .text(`${country} - ${year}`)
+        .style("margin-right", "10px")
+        .style("color", "white")
+        .style("margin-left", "7px");
+
+      entryDiv.append("a")
+        .text("✖")
+        .attr("class", "remove-button")
+        .style("color", "white")
+        .style("margin-right", "7px")
+        .on("click", function() {
+          removeCountryYearData(countryYear);
+        });
+    });
+  }
+
+  
+  // Function to remove data for the selected country-year
+  function removeCountryYearData(countryYear) {
+    const index = selectedCountryYears.indexOf(countryYear);
+    if (index !== -1) {
+      selectedCountryYears.splice(index, 1);
+      delete selectedData[countryYear];
+      delete countryColors[countryYear];
+      updateRadarChart(selectedData, selectedCountryYears, countryColors);
+      updateSelectedDataDisplay();
+    } 
+    else {
+      alert("The selected country-year was not previously added.");
+    }
+  }
+  
+  // Function to update the radar chart
+  function updateRadarChart(data, countryYears, countryColors) {
+
+    // Clear previous radar lines and circles
+    svg.selectAll(".radar-line").remove();
+    svg.selectAll(".radar-circle").remove();
+  
+    // Find the maximum value for radar scale domain calculation
+    let maxDataValue = 0;
+    countryYears.forEach(countryYear => {
+      const measureType = measureSelect.node().value; // Get the selected measure type
+      const values = data[countryYear].map(d => {
+        if (measureType === "Per 100 000 population") {
+          return parseFloat(d['Value']); // Use 'Value' column for "Per 100,000 population"
+        } 
+        else{
+          return parseFloat(d['Percentage of graduates contributed by country']); // Default column
+        }
+      });
+
+      const maxValueInCountry = d3.max(values);
+      if (maxValueInCountry > maxDataValue) {
+        maxDataValue = maxValueInCountry;
       }
     });
-  });
 
-  // Add legend
-  svg.selectAll(".legend").remove();
-  const legend = svg.append("g")
-    .attr("class", "legend")
-    .attr("transform", "translate(-350, -300)");
+    // Recalculate radar scale domain based on the maximum value
+    radarScale.domain([0, maxDataValue]);
 
-  legend.selectAll("rect")
-    .data(countries)
-    .enter().append("rect")
-    .attr("x", 0)
-    .attr("y", (d, i) => i * 20)
-    .attr("width", 18)
-    .attr("height", 18)
-    .style("fill", (d, i) => colorScale(i));
+    // Draw radar lines (polygons) for all country-years
+    countryYears.forEach((countryYear, index) => {
+      const [country, year] = countryYear.split('-');
+      const measureType = measureSelect.node().value; // Get the selected measure type
+      const values = data[countryYear].map(d => {
+        if (measureType === "Per 100 000 population") {
+          return parseFloat(d['Value']); // Use 'Value' column for "Per 100,000 population"
+        } 
+        else {
+          return parseFloat(d['Percentage of graduates contributed by country']); // Use 'Percentage of graduates contributed by country' column for Number(aka Percentage)
+        }
+      });
 
-  legend.selectAll("text")
-    .data(countries)
-    .enter().append("text")
-    .attr("x", 24)
-    .attr("y", (d, i) => i * 20 + 9)
-    .attr("dy", ".35em")
-    .text(d => d);
-}
+      const dataPoints = values.map((d, i) => ({
+        x: radarScale(d) * Math.cos(angleSlice * i - Math.PI / 2),
+        y: radarScale(d) * Math.sin(angleSlice * i - Math.PI / 2)
+      }));
+
+      // Draw radar lines (polygons)
+      svg.append("polygon")
+        .datum(dataPoints)
+        .attr("class", "radar-line")
+        .attr("points", d => d.map(point => [point.x, point.y].join(",")).join(" "))
+        .attr("stroke", countryColors[countryYear])
+        .attr("stroke-width", 2)
+        .attr("fill", countryColors[countryYear])
+        .attr("fill-opacity", 0.1);
+    });
+
+    // Function to show tooltip
+    function showTooltip(content, event, countryYear) {
+      const tooltipColor = countryColors[countryYear];
+      if (tooltipColor == "#E6194B" || tooltipColor == "#4363D8"){
+        tooltip.style("color","white")
+      }
+      else{
+        tooltip.style("color","black")
+      }
+      tooltip.transition().duration(100).style("opacity", 1)
+      tooltip.html(content)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY - 10) + "px")
+        .style("background-color", tooltipColor) // Set tooltip background color
+      }
+
+    // Function to hide tooltip
+    function hideTooltip() {
+      tooltip.transition().duration(200).style("opacity", 0);
+    }
+
+    // Draw circles for data points
+    countryYears.forEach((countryYear, index) => {
+      const [country, year] = countryYear.split('-');
+      const measureType = measureSelect.node().value; // Get the selected measure type
+      const values = data[countryYear].map(d => {
+        if (measureType === "Per 100 000 population") {
+          return parseFloat(d['Value']); // Use 'Value' column for "Per 100,000 population"
+        } 
+        else {
+          return parseFloat(d['Percentage of graduates contributed by country']); // Use 'Percentage of graduates contributed by country' column for Number(aka Percentage)
+        }
+      });
+
+      const dataPoints = values.map((d, i) => ({
+        x: radarScale(d) * Math.cos(angleSlice * i - Math.PI / 2),
+        y: radarScale(d) * Math.sin(angleSlice * i - Math.PI / 2)
+      }));
+
+      dataPoints.forEach((point, i) => {
+        if (point.x !== 0 && point.y !== 0) {
+          svg.append("circle")
+            .attr("class", "radar-circle")
+            .attr("cx", point.x)
+            .attr("cy", point.y)
+            .attr("r", 5)
+            .attr("fill", countryColors[countryYear])
+            .on("mouseover", function(event) {
+              const tooltipContent = `
+                <strong>Country:</strong> ${country}<br>
+                <strong>Year:</strong> ${year}<br>
+                <strong>Value:</strong> ${values[i]}${measureType === "Number" ? '%' : ''}
+              `;
+              showTooltip(tooltipContent, event, countryYear); // Pass country-year combination
+            })
+            .on("mousemove", function(event) {
+              tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+            })
+            .on("mouseout", function() {
+              hideTooltip();
+            });
+        }
+      });
+    });
+  }
 
 // Load the data and initialize the dropdowns
 d3.csv("Secondary Filtered Dataset.csv").then(data => {
-  const filteredData = data.filter(d => categories.includes(d.Variable));
+  const filteredData = data.filter(d => {
+    const variable = d.Variable.replace(' graduates', '');
+    return categories.includes(variable);
+  });
   const countries = Array.from(new Set(filteredData.map(d => d.Country)));
   const years = Array.from(new Set(filteredData.map(d => d.Year)));
   const measures = Array.from(new Set(filteredData.map(d => d.Measure)));
 
   // Populate the country dropdown
   const countrySelect = d3.select("#countrySelect");
-  countrySelect.selectAll("option")
+  countrySelect.append("option")
+    .attr("value", "")
+    .attr("disabled", true)
+    .attr("selected", true)
+    .text("Select Country");
+
+  countrySelect.selectAll("option.country-option")
     .data(countries)
-    .enter().append("option")
+    .enter()
+    .append("option")
+    .attr("class", "country-option")
+    .attr("value", d => d)
     .text(d => d);
 
   // Populate the year dropdown
   const yearSelect = d3.select("#yearSelect");
-  yearSelect.selectAll("option")
+  yearSelect.append("option")
+    .attr("value", "")
+    .attr("disabled", true)
+    .attr("selected", true)
+    .text("Select Year");
+
+  yearSelect.selectAll("option.year-option")
     .data(years)
     .enter().append("option")
+    .attr("class", "year-option")
+    .attr("value", d => d)
     .text(d => d);
 
   // Populate the measure dropdown
-  const measureSelect = d3.select("#measureSelect");
   measureSelect.selectAll("option")
     .data(measures)
     .enter().append("option")
     .text(d => d);
 
-  // Initialize selected data
-  let selectedData = {};
-  let selectedCountries = [];
+  // Add initial update for the display
+  updateSelectedDataDisplay();
 
-  // Function to add data for the selected country and year
-  function addCountryData() {
-    const selectedCountry = countrySelect.node().value;
-    const selectedYear = yearSelect.node().value;
-    const selectedMeasure = measureSelect.node().value;
-    if (!selectedCountries.includes(selectedCountry)) {
-      selectedCountries.push(selectedCountry);
-      selectedData[selectedCountry] = filteredData.filter(d => 
-        d.Country === selectedCountry && 
-        d.Year === selectedYear && 
-        d.Measure === selectedMeasure
-      );
-      updateRadarChart(selectedData, selectedCountries);
-    }
+  // Define an array to store used colors
+let usedColors = [];
+
+// Function to add data for the selected country and year
+function addCountryData() {
+  if (selectedCountryYears.length >= 5) {
+    alert("You cannot select more than five countries. It reduces the readability of the chart.");
+    return;
   }
+  const selectedCountry = countrySelect.node().value;
+  const selectedYear = yearSelect.node().value;
+  const selectedMeasure = measureSelect.node().value;
+  const countryYear = `${selectedCountry}-${selectedYear}`;
+  if (!selectedCountry || !selectedYear || !selectedMeasure) {
+    alert("Please select the required fields");
+    return;
+  }
+  if (!selectedCountryYears.includes(countryYear)) {
+    selectedCountryYears.push(countryYear);
+    
+    // Check if there are unused colors available
+    let color;
+    if (usedColors.length < 5) {
+      // If there are unused colors, use the next available color from colorScale
+      color = colorScale(usedColors.length);
+    } 
+    else {
+      // If all colors are used, shuffle and reset the usedColors array
+      usedColors = [];
+      color = colorScale(0);
+    }
+    // Store the assigned color in the usedColors array
+    usedColors.push(color);
 
+    countryColors[countryYear] = color; // Assign color to the country-year
+    selectedData[countryYear] = filteredData.filter(d =>
+      d.Country === selectedCountry &&
+      d.Year === selectedYear &&
+      d.Measure === selectedMeasure
+    );
+    updateRadarChart(selectedData, selectedCountryYears, countryColors);
+    updateSelectedDataDisplay();
+  }
+}
   // Add button event listener
   d3.select("#addButton").on("click", addCountryData);
+
+  // Remove button event listener
+  d3.select("#removeButton").on("click", function() {
+    const selectedCountry = countrySelect.node().value;
+    const selectedYear = yearSelect.node().value;
+    const countryYear = `${selectedCountry}-${selectedYear}`;
+    if (!selectedCountry || !selectedYear) {
+          alert("Selected fields are empty");
+          return;
+        }
+    removeCountryYearData(countryYear);
+  });
+
+  // Prevent the user from changing the measure type when there is data on the chart
+  measureSelect.on("change", function() {
+    const existingData = Object.keys(selectedData).length > 0;
+    const selectedMeasure = measureSelect.node().value;
+    const existingMeasureType = Object.keys(selectedData).length > 0 ? selectedData[Object.keys(selectedData)[0]][0].Measure : null;
+
+    if (existingData && existingMeasureType !== selectedMeasure) {
+      const confirmation = confirm("Changing the measure type will remove the existing data being displayed onto the chart. Do you wish to continue?");
+      if (confirmation) {
+        // Clear existing data
+        selectedData = {};
+        selectedCountryYears = [];
+        countryColors = {};
+        updateSelectedDataDisplay();
+        // Update the chart with new measure type
+        updateRadarChart(selectedData, selectedCountryYears, countryColors);
+      } else {
+        // Reset the measure type to the previous one
+        this.value = existingMeasureType;
+      }
+    }
+  });
 });
 </script>
+<style>
+  /*Importing fonts*/
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
-</body>
+  html {
+    scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+  }
+
+  section {
+    padding: 0;
+    margin: 0;
+  }
+
+  #header {
+    width: 100%;
+    background: url("health_bg.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    color: white;
+    height: 100vh;
+    font-family: "Poppins", sans-serif;
+    display: inline-block; /* Only takes up space it requires */
+  }
+
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%; /* Ensure it covers the full height of the header */
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 0;
+  }
+
+
+  body{
+    margin: 0;
+    padding: 0;
+    float: left;
+  }
+
+  #header-div{
+    position: relative;
+    top: 50%;
+    transform: translateY(-45%);
+    z-index: 1; /* Moves the div to the front, other elements go behind it */
+  }
+
+  #header h1{
+    font-size: 48pt;
+    text-align: center;
+    font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.08em;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 1);
+  }
+
+  #header h2{
+    font-size: 36pt;
+    text-align: center;
+    font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.08em;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 1);
+  }
+
+  #header a {
+    font-family: "Roboto Flex", sans-serif;
+    font-size: 14pt;
+    text-align: center;
+    width: fit-content;
+    padding: 10px;
+    position: relative; /* Ensure the pseudo-element is positioned relative to each <a> */
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    display: block; /* Ensure each <a> element is on a separate line */
+    text-decoration: none;
+    color: white;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 1);
+  }
+
+  #header a:active {
+    color: white;
+  }
+
+  /* Adding pseudo-element for the underline */
+  #header a::after {
+    content: '';
+    position: absolute;
+    width: 100%; /* Match the width of the <a> element */
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: white;
+    transform: scaleX(0);
+    transform-origin: bottom right;
+    transition: transform 0.35s ease-out;
+  }
+
+  #header a:hover {
+    font-weight: bolder;
+    transition: 0.35s;
+  }
+
+  /* Hover effect to slide in the underline */
+  #header a:hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
+  }
+
+  /* Adding pseudo-element for the triangle on hover */
+  #header a::before {
+    content: '\25BA';
+    position: absolute;
+    left: -30px; /* Adjusting the distance of the triangle from the text */
+    bottom: 6px;
+    border: solid transparent;
+    border-width: 5px 0 5px 7px;
+    border-left-color: transparent;
+    border-right-color: white;
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.35s ease-out, right 0.35s ease-out;
+  }
+
+  #header a:hover::before {
+    opacity: 1;
+  }
+
+  #header a:first-of-type {
+    margin-top: 9%;
+  }
+/*--------------------------------------------'HOW TO' SECTION----------------------------------------------------------*/
+  #radar-info{
+    color: white;
+    font-family: "Roboto Flex", sans-serif;
+    height: 110vh;
+    margin-top: -2.5%;
+    padding: 0;
+    background: url(ques_mark_background.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  #radar-info div{
+    width: 70%;
+    position: relative;
+    left: 15%;
+    right: 15%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+    padding: 0;
+    z-index: 2;
+  }
+
+  #radar-info p{
+    font-size: 13pt;
+    font-family: "Roboto Flex", sans-serif;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+    line-height: 1.5;
+  }
+
+  #radar-info h2{
+    font-size: 28pt;
+    text-align: center;
+    font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.08em;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.6);
+    z-index: 2;
+  }
+
+  #radar-info h3{
+    font-size: 22pt;
+    font-family: "Bebas Neue", sans-serif;
+    letter-spacing: 0.08em;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.6);
+    z-index: 2;
+  }
+
+  main{
+    padding: 0;
+    margin: 0;
+  }
+/*------------------------------------------------RADAR CHART SECTION---------------------------------------------------------*/
+  #radar{
+    width: 81%;
+    position: relative;
+    left: 10%;
+    right: 2%;
+    display: flex;
+    gap: 7%; /* Add gap between child elements */
+    font-family: 'Poppins', sans-serif;
+  }
+
+  #controls{
+    width: 15%;
+    position: relative;    
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    transform: translateY(12%);
+  }
+
+  #radarChart {
+    font-family: "Roboto Flex", sans-serif;
+    font-size: 12.5pt;
+    display: inline-block;
+    height: 100vh; /* Full viewport height */
+    width: 85%;
+    margin: 0;
+    padding: 0;
+  }
+
+  #controls *{
+    display: block;
+  }
+
+  /* Styling for dropdowns */
+  select {
+    width: 100%;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: inline-block;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 12px 0;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  #addButton, #removeButton {
+    background-color: #4682B4;
+    border: none;
+    color: white;
+    padding: 12px 0;
+    margin: 5px 0;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+    transition-duration: 0.15s;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 4px;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  #addButton:hover {
+    background-color: #0056b3; /* Darker Blue */
+  }
+
+  #removeButton{
+    background-color: #E97451; /* Dull Orange */
+  }
+
+  #removeButton:hover{
+    background-color: #CC5500; /* Darker Orange */
+  }
+
+  #tooltip {
+    position: absolute; /*positioned relative to the nearest positioned ancestor(doesn't have one), in this case uses the document body*/
+    text-align: center;
+    width: 120px;
+    height: fit-content;
+    padding: 10px;
+    font: 13.5px sans-serif;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    font-family: "Roboto Flex", sans-serif;
+    background-color: #4682B4;
+    color: black;
+    z-index: 2;
+    transition: 0.15s ease-in-out;
+  }
+
+  #selectedDataContainer div{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    padding: 5px 0;
+    font-size: 14px;
+  }
+
+  #selectedDataContainer a{
+    cursor: pointer; /* Changes the cursor to pointer */
+  }
+
+  #selectedDataContainer div:hover{
+    opacity: 0.85;
+    transform: scale(105%); /*Scales up by 5%*/
+    transition: 0.25s ease-in-out;
+  }
+
+  hr{
+    background-color: #D3D3D3;
+    width: 80%;
+    position: relative;
+    display: block;
+  }
+
+/*---------------------footer----------------------*/
+  footer{
+    font-family: "Poppins", sans-serif;
+    font-size: 11.5pt;
+    color: white;
+    background-color: black;
+    padding: 1.4% 0;
+    margin: 0;
+    text-align: center;
+  }
+
+/*------------------------------------------------------Media Screen (724px)------------------------------------------------------------*/
+  @media (max-width: 724px) {
+    #header {
+      width: 100%;
+      height: 95vh;
+      display: block;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 95vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 0;
+    }
+
+    #header-div{
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1;
+      padding: 2% 0;
+    }
+
+    #header h1{
+      font-size: 36pt;
+      text-align: center;
+      font-family: "Bebas Neue", sans-serif;
+      letter-spacing: 0.05em;
+      text-shadow: 3px 3px 5px rgba(0, 0, 0, 1);
+    }
+
+    #header h2{
+      font-size: 28pt;
+      text-align: center;
+      font-family: "Bebas Neue", sans-serif;
+      letter-spacing: 0.05em;
+      text-shadow: 3px 3px 5px rgba(0, 0, 0, 1);
+    }
+
+    #header a {
+      font-family: "Roboto Flex", sans-serif;
+      font-size: 13pt;
+      text-align: center;
+      width: fit-content;
+      padding: 10px;
+      position: relative; /* Ensure the pseudo-element is positioned relative to each <a> */
+      left: 50%;
+      transform: translateX(-50%);
+      margin: 0; /* Reset margin to avoid additional spacing issues */
+      display: block; /* Ensure each <a> element is on a separate line */
+      text-decoration: none;
+      color: white;
+      text-shadow: 3px 3px 5px rgba(0, 0, 0, 1);
+    }
+
+    #header a:active {
+      color: white;
+    }
+
+    /* Adding pseudo-element for the underline */
+    #header a::after {
+      content: '';
+      position: absolute;
+      width: 100%; /* Match the width of the <a> element */
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: white;
+      transform: scaleX(0);
+      transform-origin: bottom right;
+      transition: transform 0.35s ease-out;
+    }
+
+    #header a:hover {
+      font-weight: bolder;
+      transition: 0.35s;
+    }
+
+    /* Hover effect to slide in the underline */
+    #header a:hover::after {
+      transform: scaleX(1);
+      transform-origin: bottom left;
+    }
+
+    /* Adding pseudo-element for the triangle on hover */
+    #header a::before {
+      content: '\25BA';
+      position: absolute;
+      left: -30px; /* Adjust the distance of the triangle from the text */
+      bottom: 6px;
+      border: solid transparent;
+      border-width: 5px 0 5px 7px;
+      border-left-color: transparent;
+      border-right-color: white;
+      opacity: 0; /* Initially hidden */
+      transition: opacity 0.35s ease-out, right 0.35s ease-out;
+    }
+
+    #header a:hover::before {
+      opacity: 1;
+    }
+
+    #header a:first-of-type {
+      margin-top: 9%;
+    }
+
+/*-------------------------------------------------RADAR SECTION---------------------------------------------------------*/
+    #radar{
+      width: 90%;
+      position: relative;
+      left: 5%;
+      right: 5%;
+      display: block;
+      gap: 0; /* Remove gap between child elements */
+    }
+    #controls{
+      width: 85%;
+      position: relative;    
+      left: 7.5%;
+      right: 7.5%;
+      display: block;
+      margin: 0;
+      padding: 2% 0;
+      transform: none;
+    }
+
+    #radarChart {
+      font-family: "Roboto Flex", sans-serif;
+      font-size: 12.5pt;
+      display: block;
+      height: fit-content;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    select {
+      width: 100%;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      display: inline-block;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 12px 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    #addButton, #removeButton {
+      background-color: #4682B4;
+      border: none;
+      color: white;
+      padding: 12px 0;
+      margin: 5px 0;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+      font-size: 14px;
+      transition-duration: 0.15s;
+      cursor: pointer;
+      width: 100%;
+      border-radius: 4px;
+      font-family: 'Poppins', sans-serif;
+    } 
+
+    #addButton:hover {
+      background-color: #0056b3; /* Darker Blue */
+    }
+
+    #removeButton{
+      background-color: #E97451;
+    }
+    #removeButton:hover{
+      background-color: #CC5500;
+    }
+    #tooltip {
+      position: absolute;
+      text-align: center;
+      width: 120px;
+      height: fit-content;
+      padding: 10px;
+      font: 13.5px sans-serif;
+      border: 0px;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0;
+      font-family: "Roboto Flex", sans-serif;
+      background-color: #4682B4;
+      color: black;
+      z-index: 2;
+      transition: 0.15s ease-in-out;
+    }
+    #selectedDataContainer div{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      padding: 5px 0;
+      font-size: 14px;
+    }
+    #selectedDataContainer a{
+      cursor: pointer;
+    }
+    #selectedDataContainer div:hover{
+      opacity: 0.85;
+      transform: scale(105%);
+      transition: 0.25s ease-in-out;
+    }
+/*--------------------------------------------------------------------------------------------*/
+    #radar-info{
+      height: fit-content;
+      margin-top: 0;
+      padding: 0;
+    }
+    #radar-info div{
+      width: 85%;
+      position: relative;
+      left: 7.5%;
+      right: 7.5%;
+      top: 0;
+      transform: none;
+      margin: 0;
+      padding: 2% 0;
+      z-index: 2;
+    }
+    #radar-info p{
+      font-size: 13pt;
+      font-family: "Roboto Flex", sans-serif;
+      text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.4);
+      z-index: 2;
+      line-height: 1.5;
+    }
+    #radar-info h2{
+      font-size: 22pt;
+      text-align: left;
+      letter-spacing: 0.05em;
+    }
+    #radar-info h3{
+      font-size: 18pt;
+      letter-spacing: 0.06em;
+    }
+    main{
+      padding: 0;
+      margin: 0;
+    }
+  }
+</style>
 </html>
