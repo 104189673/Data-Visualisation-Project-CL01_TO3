@@ -434,10 +434,10 @@ const margin = {top: 20, right: 30, bottom: 40, left: 100},
 // Append the svg object to the body of the page
 const bubbleSVG = d3.select("#bubbleChart")
   .append("svg")
-  .attr("width", width + margin.left + margin.right)
-  .attr("height", height + margin.top + margin.bottom)
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
   .append("g")
-  .attr("transform", `translate(${margin.left},${margin.top})`);
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
 // Define a color scale for the variables
 const color = d3.scaleOrdinal(d3.schemeCategory10);
@@ -524,13 +524,13 @@ d3.csv("Secondary Filtered Dataset.csv").then(function(data) {
       .data(filteredData)
       .enter()
       .append("circle")
-      .attr("cx", d => x(d.Variable))
-      .attr("cy", d => y(d.Country))
-      .attr("r", d => z(d.Value))
-      .style("fill", d => color(d.Variable))
-      .style("opacity", "0.7")
-      .attr("stroke", "black")
-      .on("mouseover", function(event, d) {
+        .attr("cx", d => x(d.Variable))
+        .attr("cy", d => y(d.Country))
+        .attr("r", d => z(d.Value))
+        .style("fill", d => color(d.Variable))
+        .style("opacity", "0.7")
+        .attr("stroke", "black")
+        .on("mouseover", function(event, d) {
           bubbleToolTip.transition()
             .duration(200)
             .style("opacity", .9);
@@ -542,7 +542,7 @@ d3.csv("Secondary Filtered Dataset.csv").then(function(data) {
           bubbleToolTip.transition()
             .duration(500)
             .style("opacity", 0);
-      });
+        });
 
     // Remove labels from bubbles
   }
@@ -556,6 +556,7 @@ d3.csv("Secondary Filtered Dataset.csv").then(function(data) {
   d3.select("#bubbleCountrySelect").property("value", "Australia");
   updateChart();
 });
+
 </script>
 <style>
   /*Importing fonts*/
